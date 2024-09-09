@@ -104,10 +104,6 @@ To make your local debug server accessible from the public internet (which is ne
 
 This setup allows you to debug your worker's behavior, including the callback functionality, without actually processing or sending images to a live endpoint. It's particularly useful for testing how your worker handles different types of responses and ensuring that callbacks are working correctly.
 
-## Contributing
-
-We welcome contributions to improve the Tinify Webhook Cloudflare Worker. Please feel free to submit issues, fork the repository and send pull requests!
-
 ## About [srvrlss.io](https://srvrlss.io)
 
 [srvrlss.io](https://srvrlss.io) is a platform focused on providing serverless solutions and tools for modern web applications. Our goal is to simplify the deployment of serverless architectures, making them more accessible and efficient for developers. From optimizing workflows to handling high-traffic use cases, srvrlss.io delivers lightweight and scalable cloud-native services.
@@ -115,6 +111,7 @@ We welcome contributions to improve the Tinify Webhook Cloudflare Worker. Please
 This repository contains our serverless proxy for Tinify, built using Cloudflare Workers. It enables efficient image compression via Tinify's API, using the power of serverless technology to scale seamlessly without the need for dedicated infrastructure.
 
 
-## License
+## Contributing
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+We welcome contributions to this Tinify proxy / Webhook Cloudflare Worker. Please feel free to submit issues, fork the repository and send pull requests!
+
