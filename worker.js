@@ -227,7 +227,7 @@ function gethtml() {
   
       <footer class="bg-light py-3 mt-5">
           <div class="container text-center">
-              <p>&copy; 2023 Tinify Webhook Proxy. All rights reserved.</p>
+              <p>&copy; 2024 srvrlss.io Tinify Webhook Proxy. All rights reserved.</p>
           </div>
       </footer>
   
