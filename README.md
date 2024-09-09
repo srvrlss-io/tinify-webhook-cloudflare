@@ -16,7 +16,7 @@ To install and deploy the Tinify Webhook Cloudflare Worker, follow these steps:
 
 2. Clone this repository:
    ```
-   git clone https://github.com/srvrlss-io/tinify-webhook-cloudflare.git
+   git clone git@github.com:srvrlss-io/tinify-webhook-cloudflare.git
    cd tinify-webhook-cloudflare
    ```
 
