@@ -128,7 +128,9 @@ This setup allows you to debug your worker's behavior, including the callback fu
 
 ## About [srvrlss.io](https://srvrlss.io)
 
-[srvrlss.io](https://srvrlss.io) is a platform focused on providing serverless solutions and tools for modern web applications. Our goal is to simplify the deployment of serverless architectures, making them more accessible and efficient for developers. From optimizing workflows to handling high-traffic use cases, srvrlss.io delivers lightweight and scalable cloud-native services.
+[srvrlss.io](https://srvrlss.io) is a website dedicated to providing information and resources about serverless platforms. It features comparisons of serverless solutions, news, and guides related to serverless technology. The focus of srvrlss.io is to help users understand different serverless offerings and their applications, making it easier for developers and organizations to choose the right platform for their projects. The site emphasizes the benefits of serverless architecture, while also addressing the challenges.
+
+srvrlss.io also provides custom serverless solutions and tools. Our goal is to simplify the deployment of serverless architectures, making them more accessible and efficient for developers.
 
 This repository contains our serverless webhook addition proxy for Tinify, built using Cloudflare Workers. It enables working with webhooks via Tinify's API, using the power of serverless technology to scale seamlessly without the need for dedicated infrastructure.
 
