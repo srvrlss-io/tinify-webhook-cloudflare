@@ -2,28 +2,6 @@
 
 Tinify Webhook Proxy: A Cloudflare Worker that acts as a flexible proxy for Tinify image compression API. Supports various input methods including form data, headers, and direct payload. Ideal for serverless image optimization workflows.
 
-
-## Why We Created This
-
-Tinify is an excellent service for image compression, offering high-quality results with significant file size reductions. However, integrating Tinify into modern serverless architectures and no/low-code environments can present several challenges:
-
-1. **Lack of Webhook Support**: Tinify's API doesn't provide native webhook functionality, making it difficult to integrate with event-driven serverless architectures.
-
-2. **Long-Running Requests**: Image compression, especially for larger files, can sometimes take longer than 30 seconds. This exceeds the timeout limits of many serverless platforms, including AWS Lambda and Cloudflare Workers.
-
-3. **Serverless Environment Limitations**: Many serverless environments have restrictions on request durations, making it challenging to work with potentially long-running image compression tasks.
-
-4. **Integration with No/Low-Code Platforms**: Platforms like Zapier and Make.com often require webhook support for seamless integration, which Tinify doesn't natively provide.
-
-To address these challenges, we created this Cloudflare Worker. It serves as a bridge between Tinify's powerful compression API and modern serverless architectures. Our solution:
-
-- Implements a webhook system, allowing for asynchronous processing and integration with event-driven architectures.
-- Handles long-running requests by managing the compression process and delivering results via callbacks, circumventing timeout issues.
-- Provides a flexible interface that supports various input methods, making it easy to integrate with different systems and platforms.
-- Opens up possibilities for no-code and low-code environments to leverage Tinify's image compression capabilities without complex backend setups.
-
-By using this Cloudflare Worker, developers can easily incorporate Tinify's excellent image compression into their serverless workflows, event-driven architectures, and no/low-code platforms, overcoming the limitations that previously made such integrations challenging.
-
 ## Installation
 
 To install and deploy the Tinify Webhook Cloudflare Worker, follow these steps:
@@ -77,6 +55,28 @@ curl -X POST https://your-worker.your-subdomain.workers.dev \
     "preserve": ["copyright", "creation"]
   }'
 ```
+
+
+## Why We Created This
+
+Tinify is an excellent service for image compression, offering high-quality results with significant file size reductions. However, integrating Tinify into modern serverless architectures and no/low-code environments can present several challenges:
+
+1. **Lack of Webhook Support**: Tinify's API doesn't provide native webhook functionality, making it difficult to integrate with event-driven serverless architectures.
+
+2. **Long-Running Requests**: Image compression, especially for larger files, can sometimes take longer than 30 seconds. This exceeds the timeout limits of many serverless platforms, including AWS Lambda and Cloudflare Workers.
+
+3. **Serverless Environment Limitations**: Many serverless environments have restrictions on request durations, making it challenging to work with potentially long-running image compression tasks.
+
+4. **Integration with No/Low-Code Platforms**: Platforms like Zapier and Make.com often require webhook support for seamless integration, which Tinify doesn't natively provide.
+
+To address these challenges, we created this Cloudflare Worker. It serves as a bridge between Tinify's powerful compression API and modern serverless architectures. Our solution:
+
+- Implements a webhook system, allowing for asynchronous processing and integration with event-driven architectures.
+- Handles long-running requests by managing the compression process and delivering results via callbacks, circumventing timeout issues.
+- Provides a flexible interface that supports various input methods, making it easy to integrate with different systems and platforms.
+- Opens up possibilities for no-code and low-code environments to leverage Tinify's image compression capabilities without complex backend setups.
+
+By using this Cloudflare Worker, developers can easily incorporate Tinify's excellent image compression into their serverless workflows, event-driven architectures, and no/low-code platforms, overcoming the limitations that previously made such integrations challenging.
 
 ## Debugging
 
