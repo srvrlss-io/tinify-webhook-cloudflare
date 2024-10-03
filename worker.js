@@ -1,160 +1,167 @@
 addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
+    event.respondWith(handleRequest(event.request))
 })
 
 async function handleRequest(request) {
-  if (request.method !== 'POST') {
-    const html = btoa(gethtml());
-    return new Response(atob(html), {
-      headers: {
-        "content-type": "text/html;charset=UTF-8",
-      },
-    });
-  }
-
-  try {
-    let source, apiKey, resizeOptions, preserveMetadata, callbackUrl
-
-    // Check if content type is multipart form-data
-    const contentType = request.headers.get('Content-Type') || ''
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData()
-      source = formData.get('source')
-      apiKey = formData.get('apiKey')
-      resizeOptions = formData.get('resize')
-      preserveMetadata = formData.get('preserve')
-      callbackUrl = formData.get('callbackUrl')
-    } else {
-      // If not form-data, expect the values in headers and body
-      apiKey = request.headers.get('Api-Key')
-      callbackUrl = request.headers.get('Callback-Url')
-      
-      // Parse the body as JSON
-      const bodyJson = await request.json()
-      source = bodyJson.source.url
-      resizeOptions = bodyJson.resize
-      preserveMetadata = bodyJson.preserve
+    if (request.method !== 'POST') {
+        const html = btoa(gethtml());
+        return new Response(atob(html), {
+            headers: {
+                "content-type": "text/html;charset=UTF-8",
+            },
+        });
     }
 
-    if (!source || !apiKey) {
-      return new Response('Missing source or API key', { status: 400 })
+    try {
+        let source, apiKey, resizeOptions, preserveMetadata, callbackUrl
+
+        // Check if content type is multipart form-data
+        const contentType = request.headers.get('Content-Type') || ''
+        if (contentType.includes('multipart/form-data')) {
+            const formData = await request.formData()
+            source = formData.get('source')
+            apiKey = formData.get('apiKey')
+            resizeOptions = formData.get('resize')
+            preserveMetadata = formData.get('preserve')
+            callbackUrl = formData.get('callbackUrl')
+        } else {
+            // If not form-data, expect the values in headers and body
+            apiKey = request.headers.get('Api-Key')
+            callbackUrl = request.headers.get('Callback-Url')
+
+            // Parse the body as JSON
+            const bodyJson = await request.json()
+            source = bodyJson.source.url
+            resizeOptions = bodyJson.resize
+            preserveMetadata = bodyJson.preserve
+        }
+
+        if (!source || !apiKey) {
+            return new Response('Missing source or API key', {
+                status: 400
+            })
+        }
+
+        // First shrink request
+        let tinifyResponse = await fetch('https://api.tinify.com/shrink', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic ' + btoa('api:' + apiKey),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                source: {
+                    url: source
+                }
+            })
+        })
+
+        if (!tinifyResponse.ok) {
+            const errorData = await tinifyResponse.json()
+            throw new Error(`Tinify API error: ${errorData.message || tinifyResponse.status}`)
+        }
+
+        let tinifyData = await tinifyResponse.json()
+
+        let outputUrl = tinifyResponse.headers.get('Location');
+
+        // If resize options are provided, make a second request
+        if (resizeOptions || preserveMetadata) {
+            const options = {}
+            if (resizeOptions) options.resize = resizeOptions
+            if (preserveMetadata) options.preserve = preserveMetadata
+
+
+            tinifyResponse = await fetch(outputUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Basic ' + btoa('api:' + apiKey),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(options)
+            })
+
+            if (!tinifyResponse.ok) {
+                const errorData = await tinifyResponse.json()
+                throw new Error(`Tinify API error during resize: ${errorData.message || tinifyResponse.status}`)
+            }
+
+            // Image is right here in tinifyResponse.body
+            const resizeBuffer = tinifyResponse.body;
+
+        }
+
+        let imageResponse = null;
+        // Download the final image
+        if (!resizeOptions) {
+            imageResponse = await fetch(outputUrl, {
+                headers: {
+                    'Authorization': 'Basic ' + btoa('api:' + apiKey),
+                },
+            })
+
+            if (!imageResponse.ok) {
+                throw new Error(`Failed to download compressed image: ${imageResponse.status}`)
+            }
+
+        } else {
+            imageResponse = tinifyResponse;
+        }
+
+
+        const imageBuffer = await imageResponse.arrayBuffer()
+        const imageType = imageResponse.headers.get('Content-Type')
+
+        // If a callback URL is provided, send the result there
+        if (callbackUrl) {
+            const callbackResponse = await fetch(callbackUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': imageType,
+                },
+                body: imageBuffer
+            })
+
+            if (!callbackResponse.ok) {
+                throw new Error(`Callback request failed with status ${callbackResponse.status}`)
+            }
+
+            return new Response('Processing complete, result sent to callback URL', {
+                status: 200
+            })
+        } else {
+            // If no callback URL, return the compressed image directly
+            return new Response(imageBuffer, {
+                status: 200,
+                headers: {
+                    'Content-Type': imageType
+                }
+            })
+        }
+    } catch (error) {
+        return new Response(`Error: ${error.message}`, {
+            status: 500
+        })
     }
-
-    // First shrink request
-    let tinifyResponse = await fetch('https://api.tinify.com/shrink', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + btoa('api:' + apiKey),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ source: {url: source} })
-    })
-
-    if (!tinifyResponse.ok) {
-      const errorData = await tinifyResponse.json()
-      throw new Error(`Tinify API error: ${errorData.message || tinifyResponse.status}`)
-    }
-
-    let tinifyData = await tinifyResponse.json()
-    console.log(tinifyResponse);
-    
-    let outputUrl = tinifyResponse.headers.get('Location');
-    console.log(outputUrl);
-
-    // If resize options are provided, make a second request
-    if (resizeOptions || preserveMetadata) {
-      const options = {}
-      if (resizeOptions) options.resize = resizeOptions
-      if (preserveMetadata) options.preserve = preserveMetadata
-
-      console.log(options)
-
-      tinifyResponse = await fetch(outputUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + btoa('api:' + apiKey),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(options)
-      })
-
-      if (!tinifyResponse.ok) {
-        const errorData = await tinifyResponse.json()
-        throw new Error(`Tinify API error during resize: ${errorData.message || tinifyResponse.status}`)
-      }
-
-      // Image is right here in tinifyResponse.body
-      const resizeBuffer = tinifyResponse.body;
-
-    }
-
-    let imageResponse = null;
-    // Download the final image
-    if(!resizeOptions) {
-      console.log("output url: ", outputUrl)
-      imageResponse = await fetch(outputUrl, {
-        headers: {
-          'Authorization': 'Basic ' + btoa('api:' + apiKey),
-        },
-      })
-
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download compressed image: ${imageResponse.status}`)
-    }
-
-    } else {
-      imageResponse = tinifyResponse;
-    }
-
-
-    const imageBuffer = await imageResponse.arrayBuffer() 
-    const imageType = imageResponse.headers.get('Content-Type')
-    console.log(imageType);
-
-    // If a callback URL is provided, send the result there
-    if (callbackUrl) {
-      const callbackResponse = await fetch(callbackUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': imageType,
-        },
-        body: imageBuffer
-      })
-
-      if (!callbackResponse.ok) {
-        throw new Error(`Callback request failed with status ${callbackResponse.status}`)
-      }
-
-      return new Response('Processing complete, result sent to callback URL', { status: 200 })
-    } else {
-      // If no callback URL, return the compressed image directly
-      return new Response(imageBuffer, { 
-        status: 200, 
-        headers: { 'Content-Type': imageType }
-      })
-    }
-  } catch (error) {
-    return new Response(`Error: ${error.message}`, { status: 500 })
-  }
 }
 
 function gethtml() {
-  const decodeAndFormat = (base64String) => {
-    const decoded = atob(base64String);
-    return decoded.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#039;')
-                  .replace(/\n/g, '<br>')
-                  .replace(/\s/g, '&nbsp;');
-  };
+    const decodeAndFormat = (base64String) => {
+        const decoded = atob(base64String);
+        return decoded.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/\n/g, '<br>')
+            .replace(/\s/g, '&nbsp;');
+    };
 
-  const formDataExample = "Y3VybCAtWCBQT1NUIGh0dHBzOi8veW91ci13b3JrZXIueW91ci1zdWJkb21haW4ud29ya2Vycy5kZXYgXAogIC1GICJzb3VyY2U9QC9wYXRoL3RvL3lvdXIvaW1hZ2UuanBnIiBcCiAgLUYgImFwaUtleT1ZT1VSX0FQSV9LRVkiIFwKICAtRiAncmVzaXplPXsibWV0aG9kIjoiZml0Iiwid2lkdGgiOjMwMCwiaGVpZ2h0IjoyMDB9JyBcCiAgLUYgJ3ByZXNlcnZlPVsiY29weXJpZ2h0IiwiY3JlYXRpb24iXScgXAogIC1GICJjYWxsYmFja1VybD1odHRwczovL3lvdXItY2FsbGJhY2stdXJsLmNvbS9lbmRwb2ludCI=";
+    const formDataExample = "Y3VybCAtWCBQT1NUIGh0dHBzOi8veW91ci13b3JrZXIueW91ci1zdWJkb21haW4ud29ya2Vycy5kZXYgXAogIC1GICJzb3VyY2U9QC9wYXRoL3RvL3lvdXIvaW1hZ2UuanBnIiBcCiAgLUYgImFwaUtleT1ZT1VSX0FQSV9LRVkiIFwKICAtRiAncmVzaXplPXsibWV0aG9kIjoiZml0Iiwid2lkdGgiOjMwMCwiaGVpZ2h0IjoyMDB9JyBcCiAgLUYgJ3ByZXNlcnZlPVsiY29weXJpZ2h0IiwiY3JlYXRpb24iXScgXAogIC1GICJjYWxsYmFja1VybD1odHRwczovL3lvdXItY2FsbGJhY2stdXJsLmNvbS9lbmRwb2ludCI=";
 
-  const jsonExample = "Y3VybCAtWCBQT1NUIGh0dHBzOi8veW91ci13b3JrZXIueW91ci1zdWJkb21haW4ud29ya2Vycy5kZXYgXAogIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIFwKICAtSCAiQXBpLUtleTogWU9VUl9BUElfS0VZIiBcCiAgLUggIkNhbGxiYWNrLVVybDogaHR0cHM6Ly95b3VyLWNhbGxiYWNrLXVybC5jb20vZW5kcG9pbnQiIFwKICAtZCAnewogICAgInNvdXJjZSI6IHsKICAgICAgInVybCI6ICJodHRwczovL2V4YW1wbGUuY29tL3BhdGgvdG8vaW1hZ2UuanBnIgogICAgfSwKICAgICJyZXNpemUiOiB7CiAgICAgICJtZXRob2QiOiAiZml0IiwKICAgICAgIndpZHRoIjogMzAwLAogICAgICAiaGVpZ2h0IjogMjAwCiAgICB9LAogICAgInByZXNlcnZlIjogWyJjb3B5cmlnaHQiLCAiY3JlYXRpb24iXQogIH0n";
+    const jsonExample = "Y3VybCAtWCBQT1NUIGh0dHBzOi8veW91ci13b3JrZXIueW91ci1zdWJkb21haW4ud29ya2Vycy5kZXYgXAogIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIFwKICAtSCAiQXBpLUtleTogWU9VUl9BUElfS0VZIiBcCiAgLUggIkNhbGxiYWNrLVVybDogaHR0cHM6Ly95b3VyLWNhbGxiYWNrLXVybC5jb20vZW5kcG9pbnQiIFwKICAtZCAnewogICAgInNvdXJjZSI6IHsKICAgICAgInVybCI6ICJodHRwczovL2V4YW1wbGUuY29tL3BhdGgvdG8vaW1hZ2UuanBnIgogICAgfSwKICAgICJyZXNpemUiOiB7CiAgICAgICJtZXRob2QiOiAiZml0IiwKICAgICAgIndpZHRoIjogMzAwLAogICAgICAiaGVpZ2h0IjogMjAwCiAgICB9LAogICAgInByZXNlcnZlIjogWyJjb3B5cmlnaHQiLCAiY3JlYXRpb24iXQogIH0n";
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
   <html lang="en">
   <head>
       <meta charset="UTF-8">
